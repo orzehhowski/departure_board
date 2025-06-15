@@ -6,3 +6,8 @@ I wan't to create home live departure board for trams on my nearest station, on 
 
 I just hope I'll find it useful, and I wan't to move on with micropython
 
+# data source
+
+I'll be fetching and using data shared by ZTM Poznan: 
+
+https://www.ztm.poznan.pl/otwarte-dane/dla-deweloperow/
