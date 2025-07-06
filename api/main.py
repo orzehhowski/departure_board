@@ -14,7 +14,7 @@ if (__name__=="__main__"):
   data_dir = "gtfs"
 
   # data processing flags - for testing
-  download_new_data = False
+  download_new_data = True
   save_data_in_db = True
 
 
