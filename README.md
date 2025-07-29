@@ -21,3 +21,7 @@ I just hope I'll find it useful, and I wan't to move on with micropython
 I'll be fetching and using data shared by ZTM Poznan: 
 
 https://www.ztm.poznan.pl/otwarte-dane/dla-deweloperow/
+
+## note
+
+created with human intelligence only (why the hell would you do that? - just to keep my brain cells going :)

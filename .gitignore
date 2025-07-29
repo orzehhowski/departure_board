@@ -2,5 +2,6 @@
 */__pycache__
 gtfs.zip
 gtfs
-schedules.db
+db/
 venv/
+api/test.py
