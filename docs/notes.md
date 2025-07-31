@@ -1,3 +1,9 @@
+## why aiohttp
+
+I didn't want to use fastAPI, because I think it is not required for API with only one endpoint - I want to keep project as small as possible. 
+
+But I wanted async requests handling too - because it is more real-life thing. Thant's how I ended up with aiohttp, which takes only 2MB on disk and allows my application to run synchronous sqlite3 reads in different threads, making request handler asynchronous - the only time-consuming thing in my handler (reading data from DB) is delegated to another thread, which lets event loop to handle next requests while data read is performed. It wouldn't be possible for sqlite3 writes - write operation blocks database file for another threads.
+
 ## algorithm for dates handling
 
 Problem: Poznan ZTM API sends data for future days that overrides previous schedules, for example:
