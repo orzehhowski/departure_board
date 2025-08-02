@@ -1,6 +1,7 @@
 import datetime
 from aiohttp import web
 import asyncio
+import aiocron
 from .ztm_data_handler import *
 from .globals import *
 
@@ -27,6 +28,7 @@ def get_departures(stop_id: str, current_datetime: datetime.datetime) -> list:
 
   return departures
 
+# GET / handler
 async def handle(request: web.Request):
   limit = request.query.get("n", "10")
   # we don't validate stop_id - if it's wrong, there just will be 0 records returned
@@ -69,9 +71,31 @@ async def handle(request: web.Request):
         break
       today_departures.append(tommorow_departures_merged[i])
 
-  return web.json_response({"stop": stop_id, "departures": today_departures[:limit]}, status=200)
+  return web.json_response({"departures": today_departures[:limit]}, status=200)
+
+# task that will run once every day - on 23:50
+async def fetch_data_task():
+  print(f"[{datetime.datetime.now()}] Running data fetch")
+  await asyncio.to_thread(fetch_data)
+  print("Data fetch completed")
+
+# we're defining cron running once a day data fetch on app startup
+async def on_startup(app: web.Application):
+  print("Setting daily data fetch schedule")
+  cron = aiocron.crontab("50 23 * * *", func=fetch_data_task, start=True)
+  app["cron"] = cron
+
+# when server stops, cron is stopped
+async def on_cleanup(app: web.Application):
+  cron = app.get("cron")
+  if cron:
+    cron.stop()
+    print("Data fetch schedule stopped")
 
 if __name__ == "__main__":
   app = web.Application()
   app.add_routes([web.get("/", handle)])
+  app.on_startup.append(on_startup)
+  app.on_cleanup.append(on_cleanup)
+
   web.run_app(app, host="0.0.0.0", port=8080)
