@@ -46,7 +46,8 @@ async def handle(request: web.Request):
   today_departures = await asyncio.to_thread(get_departures, stop_id, current_datetime)
 
   now = current_datetime.strftime("%H:%M:%S")
-  today_departures = [x for x in today_departures if x[2] > now]
+  after_midnight_departures = [list(x) for x in today_departures if x[2] >= "24:00:00"]
+  today_departures = [x for x in today_departures if x[2] > now and x[2] < "24:00:00"]
 
   # for data in today_departures[:limit]:
   #   data = list(data)
@@ -54,13 +55,19 @@ async def handle(request: web.Request):
   #   print(*data, sep="\t")
 
   if len(today_departures) < limit:
+    # swap after midnight times to next day
+    for departure in after_midnight_departures:
+      departure[2] = f"{int(departure[2][:2]) - 24:02}{departure[2][2:]}"
+
     tommorow_datetime = current_datetime + datetime.timedelta(days=1)
     tommorow_departures = await asyncio.to_thread(get_departures, stop_id, tommorow_datetime)
+    tommorow_departures_merged = [*after_midnight_departures, *list(tommorow_departures)]
+    tommorow_departures_merged.sort(key= lambda x: x[2])
 
     for i in range(limit - len(today_departures)):
-      if (i >= len(tommorow_departures)):
+      if (i >= len(tommorow_departures_merged)):
         break
-      today_departures.append(tommorow_departures[i])
+      today_departures.append(tommorow_departures_merged[i])
 
   return web.json_response({"stop": stop_id, "departures": today_departures[:limit]}, status=200)
 
