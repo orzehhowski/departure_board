@@ -1,50 +1,68 @@
-from http.server import BaseHTTPRequestHandler, HTTPServer
 import datetime
-import json
-from urllib.parse import parse_qs, urlparse
 from aiohttp import web
 import asyncio
 from .ztm_data_handler import *
 from .globals import *
 
-def get_today_departures(stop_id: str) -> list:
-  now_weekday = datetime.datetime.now().strftime("%w")
-  today = datetime.datetime.now().strftime("%Y%m%d")
+def get_departures(stop_id: str, current_datetime: datetime.datetime) -> list:
+  weekday = current_datetime.strftime("%w")
+  day = current_datetime.strftime("%Y%m%d")
 
-  todays_db = ""
+  current_day_db = ""
   for file in os.listdir(DB_DIR):
     [files_start_date, files_end_date] = file.split(".")[0].split("_")
-    if today >= files_start_date and today <= files_end_date:
-      todays_db = os.path.join(DB_DIR, file)
+    if day >= files_start_date and day <= files_end_date:
+      current_day_db = os.path.join(DB_DIR, file)
 
-  if todays_db == "":
+  if current_day_db == "":
     print("Today's database not found : (")
     return []
 
-  print(f"Today's database: {todays_db}")
+  print(f"Today's database: {current_day_db}")
 
-  #read todays service
-  todays_service = sqlite.get_todays_service(todays_db, WEEKDAYS[int(now_weekday)])
+  #read service for given day
+  service = sqlite.get_todays_service(current_day_db, WEEKDAYS[int(weekday)])
 
-  today_departures = sqlite.get_todays_stop_departures(todays_db, stop_id, todays_service)
+  departures = sqlite.get_todays_stop_departures(current_day_db, stop_id, service)
 
-  return today_departures
+  return departures
 
 async def handle(request: web.Request):
-  limit = int(request.query.get("n", "10"))
+  limit = request.query.get("n", "10")
+  # we don't validate stop_id - if it's wrong, there just will be 0 records returned
   stop_id = request.query.get("stop", "60")
 
-  today_departures = await asyncio.to_thread(get_today_departures, stop_id)
+  if not limit.isnumeric():
+    return web.json_response({"message": "n shoud be numeric!"}, status=400)
+  
+  limit = int(limit)
 
-  now = datetime.datetime.now().strftime("%H:%M:%S")
+  # maximum value will be 100
+  if limit > 100:
+    limit = 100
+
+  current_datetime = datetime.datetime.now()
+
+  today_departures = await asyncio.to_thread(get_departures, stop_id, current_datetime)
+
+  now = current_datetime.strftime("%H:%M:%S")
   today_departures = [x for x in today_departures if x[2] > now]
 
-  for data in today_departures[:limit]:
-    data = list(data)
-    data[1] = f"{data[1]:28}"
-    print(*data, sep="\t")
+  # for data in today_departures[:limit]:
+  #   data = list(data)
+  #   data[1] = f"{data[1]:28}"
+  #   print(*data, sep="\t")
 
-  return web.json_response({"departures": today_departures[:limit]}, status=200)
+  if len(today_departures) < limit:
+    tommorow_datetime = current_datetime + datetime.timedelta(days=1)
+    tommorow_departures = await asyncio.to_thread(get_departures, stop_id, tommorow_datetime)
+
+    for i in range(limit - len(today_departures)):
+      if (i >= len(tommorow_departures)):
+        break
+      today_departures.append(tommorow_departures[i])
+
+  return web.json_response({"stop": stop_id, "departures": today_departures[:limit]}, status=200)
 
 if __name__ == "__main__":
   app = web.Application()

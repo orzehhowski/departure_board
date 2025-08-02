@@ -1,1 +1,7 @@
-http://localhost:8080/?n=7
+# http://localhost:8080/?n=12
+
+# http://localhost:8080/?n=elo
+
+# http://localhost:8080/?n=4
+
+http://localhost:8080/?n=1000&stop=1433

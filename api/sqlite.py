@@ -69,7 +69,7 @@ def get_todays_stop_departures(db_filename: str, stop_id: str, current_service: 
                    inner join trips on trips.trip_id = stop_times.trip_id
                    where stop_times.stop_id = ? and stop_times.trip_id like ?
                    order by stop_times.departure_time
-                   """, (stop_id, f"\"{current_service}%"))
+                   """, (stop_id, f"{current_service}%"))
     return cursor.fetchall()
   
 def get_todays_service(db_filename: str, today: str) -> str:

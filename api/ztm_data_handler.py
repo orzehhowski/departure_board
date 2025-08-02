@@ -32,7 +32,7 @@ def save_data_in_db(db_dir, db_name, data_dir) -> None:
 
     # read stop_times from file and save it to db
     print("Reading stop times from file...")
-    stop_times_h, stop_times = read_stop_times(os.path.join(data_dir, "stop_times.txt"), "60")
+    stop_times = read_data(os.path.join(data_dir, "stop_times.txt"))
     
     print("Saving stop times to db...")
     sqlite.create_stop_times(db_name, stop_times)
@@ -90,3 +90,6 @@ def fetch_data(flag_download_new_data=True, flag_save_data_in_db=True) -> None:
     save_data_in_db(DB_DIR, os.path.join(DB_DIR, db_name), DATA_DIR)
   else:
     print("skipping saving data to database")
+
+if (__name__ == "__main__"):
+  fetch_data(flag_download_new_data=False)
