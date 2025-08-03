@@ -2,6 +2,7 @@ import datetime
 from aiohttp import web
 import asyncio
 import aiocron
+import os
 from .ztm_data_handler import *
 from .globals import *
 
@@ -93,6 +94,8 @@ async def on_cleanup(app: web.Application):
     print("Data fetch schedule stopped")
 
 if __name__ == "__main__":
+  fetch_data()
+
   app = web.Application()
   app.add_routes([web.get("/", handle)])
   app.on_startup.append(on_startup)
