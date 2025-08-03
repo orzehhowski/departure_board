@@ -55,6 +55,4 @@ Basing on historical ZTM data, there are no situations that are not handled by t
 ## TODOs
 
 - Add databases deletion after some time
-- Make http server and thread that runs fetch once a day
-- Add optional data from next day to request handler
 - make esp client in micropython

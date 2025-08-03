@@ -45,4 +45,6 @@ https://www.ztm.poznan.pl/otwarte-dane/dla-deweloperow/
 
 ## note
 
+for more details visit `notes/readme.md`
+
 created with human intelligence only (why the hell would you do that? - just to keep my brain cells going :)
