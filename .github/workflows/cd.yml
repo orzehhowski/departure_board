@@ -32,10 +32,10 @@ jobs:
       - name: Wait 60s and check container status
         run: |
           sleep 60
-          STATUS=$(docker inspect --format '{{.State.Status}}' my_container)
+          STATUS=$(docker inspect --format '{{.State.Status}}' bimba_api)
           if [ "$STATUS" != "running" ]; then
             echo "Container exited with status: $STATUS"
-            docker logs my_container
+            docker logs bimba_api
             exit 1
           fi
 
