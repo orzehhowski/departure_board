@@ -6,6 +6,11 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'api/**'
+      - '.github/workflows/**'
+      - 'Dockerfile'
+      - 'compose.yaml'
 
 jobs:
   test:
@@ -24,6 +29,15 @@ jobs:
           compose-file: "compose.yaml"
           skip-exited: "false"
           skip-no-healthcheck: "false"
+      - name: Wait 60s and check container status
+        run: |
+          sleep 60
+          STATUS=$(docker inspect --format '{{.State.Status}}' my_container)
+          if [ "$STATUS" != "running" ]; then
+            echo "Container exited with status: $STATUS"
+            docker logs my_container
+            exit 1
+          fi
 
   deploy:
     name: Deploy
