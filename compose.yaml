@@ -1,0 +1,10 @@
+services:
+  api:
+    build: .
+    container_name: bimba_api
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1

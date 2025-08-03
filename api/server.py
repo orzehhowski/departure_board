@@ -16,10 +16,8 @@ def get_departures(stop_id: str, current_datetime: datetime.datetime) -> list:
       current_day_db = os.path.join(DB_DIR, file)
 
   if current_day_db == "":
-    print("Today's database not found : (")
+    print(f"Database for {day} not found : (")
     return []
-
-  print(f"Today's database: {current_day_db}")
 
   #read service for given day
   service = sqlite.get_todays_service(current_day_db, WEEKDAYS[int(weekday)])
@@ -33,6 +31,8 @@ async def handle(request: web.Request):
   limit = request.query.get("n", "10")
   # we don't validate stop_id - if it's wrong, there just will be 0 records returned
   stop_id = request.query.get("stop", "60")
+  print(f"GET / ? n={limit} stop={stop_id}")
+
 
   if not limit.isnumeric():
     return web.json_response({"message": "n shoud be numeric!"}, status=400)
@@ -81,8 +81,8 @@ async def fetch_data_task():
 
 # we're defining cron running once a day data fetch on app startup
 async def on_startup(app: web.Application):
-  print("Setting daily data fetch schedule")
-  cron = aiocron.crontab("50 23 * * *", func=fetch_data_task, start=True)
+  print(f"Setting daily data fetch schedule for \"{DATA_FETCH_CRON}\"")
+  cron = aiocron.crontab(DATA_FETCH_CRON, func=fetch_data_task, start=True)
   app["cron"] = cron
 
 # when server stops, cron is stopped
