@@ -1,6 +1,8 @@
 # departure_board
 
-I wan't to create home live departure board for trams on my nearest station, on my ESP8266. Unfortunately I've got only 0,96" 128*64 Px LCD right now, so it may be little bit small, but it doesn't matter
+I wan't to create home live departure board for trams on my nearest station, on my ESP8266. Unfortunately I've got only 0,96" 128*64 Px LCD right now, so it may be little bit small, but it doesn't matter.
+
+This file describes API server, for client details visit `readme` files in `/client` directory.
 
 ## how to run
 
