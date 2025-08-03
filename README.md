@@ -12,6 +12,12 @@ docker compose up
 
 I just hope I'll find it useful, and I wan't to move on with micropython
 
+## deploy
+
+You can find the API on https://bimba.orzehhowski.pl
+
+It is hosted on my https://mikr.us VPS server - I strongly recommend these : )
+
 ## what does it do
 
 `api.server` module starts `aiohttp` HTTP server and registers `aiocron` task. This task fetches data from ZTM API and saves it to sqlite database daily at 23:50.
