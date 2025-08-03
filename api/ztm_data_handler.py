@@ -69,7 +69,7 @@ def fetch_data(flag_download_new_data=True, flag_save_data_in_db=True) -> None:
 
   # save data to sqlite
 
-  os.makedirs("gtfs", exist_ok=True)
+  os.makedirs("db", exist_ok=True)
 
   # get start and end date
   start_date, end_date =  read_feed_dates(os.path.join("gtfs", "feed_info.txt"))
