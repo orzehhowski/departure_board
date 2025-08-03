@@ -59,24 +59,26 @@ def fetch_data(flag_download_new_data=True, flag_save_data_in_db=True) -> None:
 
     print("unzipping file...")
 
-    os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs("gtfs", exist_ok=True)
     
     with zipfile.ZipFile(output_filename, "r") as zip_ref:
-      zip_ref.extractall(DATA_DIR)
+      zip_ref.extractall("gtfs")
 
   else:
     print("skipping new data fetch")
 
   # save data to sqlite
 
+  os.makedirs("gtfs", exist_ok=True)
+
   # get start and end date
-  start_date, end_date =  read_feed_dates(os.path.join(DATA_DIR, "feed_info.txt"))
+  start_date, end_date =  read_feed_dates(os.path.join("gtfs", "feed_info.txt"))
   
   db_name = f"{start_date}_{end_date}.db"
 
   # search for existing databases and check if the new one overrides other
   print("checking if the new database overrides old ones...")
-  for file in os.listdir(DB_DIR):
+  for file in os.listdir("db"):
     if not file == db_name:
       [files_start_date, files_end_date] = file.split(".")[0].split("_")
       # if yes, update the old file's name
@@ -84,10 +86,10 @@ def fetch_data(flag_download_new_data=True, flag_save_data_in_db=True) -> None:
         new_end_date = (datetime.datetime.strptime(start_date, "%Y%m%d") - datetime.timedelta(days=1)).strftime("%Y%m%d")
         new_filename = f"{files_start_date}_{new_end_date}.db"
         print(f"renaming db {file} to {new_filename}")
-        os.rename(os.path.join(DB_DIR, file), os.path.join(DB_DIR, new_filename))
+        os.rename(os.path.join("db", file), os.path.join("db", new_filename))
 
   if flag_save_data_in_db:
-    save_data_in_db(DB_DIR, os.path.join(DB_DIR, db_name), DATA_DIR)
+    save_data_in_db("db", os.path.join("db", db_name), "gtfs")
   else:
     print("skipping saving data to database")
 

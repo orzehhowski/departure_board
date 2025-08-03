@@ -11,10 +11,10 @@ def get_departures(stop_id: str, current_datetime: datetime.datetime) -> list:
   day = current_datetime.strftime("%Y%m%d")
 
   current_day_db = ""
-  for file in os.listdir(DB_DIR):
+  for file in os.listdir("db"):
     [files_start_date, files_end_date] = file.split(".")[0].split("_")
     if day >= files_start_date and day <= files_end_date:
-      current_day_db = os.path.join(DB_DIR, file)
+      current_day_db = os.path.join("db", file)
 
   if current_day_db == "":
     print(f"Database for {day} not found : (")
