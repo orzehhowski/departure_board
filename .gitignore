@@ -5,3 +5,4 @@ gtfs
 db/
 venv/
 api/test.py
+**/my_secrets.py

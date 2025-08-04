@@ -13,7 +13,10 @@ cd ./client/esp8266_ssd1306
 python3 -m venv venv
 source ./venv/bin/activate
 pip install -r requirements.txt
+cp ./my_secrets_example.py ./my_secrets.py
+# fill required fields in my_secrets.py with your WLAN info
 rshell --port [your_device_port] cp ./main.py /pyboard
+rshell --port [your_device_port] cp ./my_secrets.py /pyboard
 ```
 
 Then restart device, and app should run when device boots.
