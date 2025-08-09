@@ -44,11 +44,12 @@ def create_trips(db_filename: str, trips: list[dict]) -> None:
                     data)
     conn.commit()
 
-def create_stop_times(db_filename: str, stop_times: list[dict]) -> None:
+def create_stop_times(db_filename: str, stop_times_chunks) -> None:
   with get_connection(db_filename) as conn:
     cursor = conn.cursor()
-    data = [(st["trip_id"], st["stop_id"], st["departure_time"], st["stop_headsign"]) for st in stop_times]
-    cursor.executemany("insert into stop_times (trip_id, stop_id, departure_time, stop_headsign) values (?, ?, ?, ?)",
+    for chunk in stop_times_chunks:
+      data = [(st["trip_id"], st["stop_id"], st["departure_time"], st["stop_headsign"]) for st in chunk]
+      cursor.executemany("insert into stop_times (trip_id, stop_id, departure_time, stop_headsign) values (?, ?, ?, ?)",
                   data)
     conn.commit()
 

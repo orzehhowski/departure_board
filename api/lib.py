@@ -8,6 +8,18 @@ def read_data(filename: str) -> list[dict]:
   with open(filename, "r", encoding="utf-8-sig") as file:
     reader = csv.DictReader(file, delimiter=",", quotechar="\"")
     return list(reader)
+
+def read_data_in_chunks(filename: str, chunk_size: int):
+  with open(filename, "r", encoding="utf-8-sig") as file:
+    reader = csv.DictReader(file, delimiter=",", quotechar="\"")
+    chunk = []
+    for row in reader:
+      chunk.append(row)
+      if len(chunk) >= chunk_size:
+        yield chunk
+        chunk = []
+    if chunk:
+      yield chunk
     
 # reads from calendar.txt service_id that is active today
 def read_todays_calendar(filename: str, today: str) -> str:

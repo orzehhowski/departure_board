@@ -32,10 +32,10 @@ def save_data_in_db(db_dir, db_name, data_dir) -> None:
 
     # read stop_times from file and save it to db
     print("Reading stop times from file...")
-    stop_times = read_data(os.path.join(data_dir, "stop_times.txt"))
+    stop_times_chunks = read_data_in_chunks(os.path.join(data_dir, "stop_times.txt"), 5000)
     
     print("Saving stop times to db...")
-    sqlite.create_stop_times(db_name, stop_times)
+    sqlite.create_stop_times(db_name, stop_times_chunks)
 
 def fetch_data(flag_download_new_data=True, flag_save_data_in_db=True) -> None:
   output_filename = "gtfs.zip"
