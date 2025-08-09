@@ -12,7 +12,7 @@ LED_PIN = 2
 
 WIFI_SSID = my_secrets.WIFI_SSID
 WIFI_PASSWORD = my_secrets.WIFI_PASSWORD
-API_URL = "https://bimba.orzehhowski.pl"
+API_URL = "http://bimba.orzehhowski.pl"
 
 def show_error():
   led = machine.Pin(LED_PIN, machine.Pin.OUT)
@@ -41,7 +41,7 @@ def print_message(display: ssd1306.SSD1306_I2C, message: str) -> None:
     i += 1
   display.show()
 
-def connect_wifi(display: ssd1306.SSD1306_I2C = None) -> network.WLAN:
+def connect_wifi(display: ssd1306.SSD1306_I2C) -> network.WLAN:
   wlan = network.WLAN(network.STA_IF)
   wlan.active(True)
   wlan.connect(WIFI_SSID, WIFI_PASSWORD)
@@ -56,17 +56,73 @@ def connect_wifi(display: ssd1306.SSD1306_I2C = None) -> network.WLAN:
 
   return wlan
 
+def get_data(display: ssd1306.SSD1306_I2C) -> dict:
+  if display:
+    print_message(display, "fetching data...")
+    response = urequests.get(API_URL)
+    print_message(display, "fetched! status: {}".format(response.status_code))
+    time.sleep(2)
+    if response.status_code == 200:
+      data = ujson.loads(response.text)
+      response.close()
+      return data
+    else:
+      print("HTTP error:", response.status_code)
+      response.close()
+
+def strip_polish(text):
+    mapping = {
+        'ą': 'a', 'ć': 'c', 'ę': 'e', 'ł': 'l',
+        'ń': 'n', 'ó': 'o', 'ś': 's', 'ż': 'z', 'ź': 'z',
+        'Ą': 'A', 'Ć': 'C', 'Ę': 'E', 'Ł': 'L',
+        'Ń': 'N', 'Ó': 'O', 'Ś': 'S', 'Ż': 'Z', 'Ź': 'Z'
+    }
+    return ''.join(mapping.get(c, c) for c in text)
+
+def print_departures(display: ssd1306.SSD1306_I2C, departures: list, offset_y: int, primary_offset_x: int, space_available) -> None:
+  if display:
+    display.fill(0)
+    for i in range(5):
+      if (i < len(departures)):
+        departure = departures[i]
+        
+        destination = strip_polish(departure[1])
+
+        # here we choose chunk fitting the offset_x
+        destination += "   "
+        
+        offset_x = primary_offset_x % len(destination)
+
+        # variant 1: no need for adding next iteration
+        if offset_x + space_available < len(destination):
+          destination = destination[offset_x:offset_x + space_available]
+
+        # variant 2: we have to add next iteration
+        elif offset_x + space_available >= len(destination):
+          left = space_available + offset_x - len(destination)
+          destination = destination[offset_x:] + destination[:left]
+
+        message = "{}|{:3}|{}".format(departure[2][:5], departure[0], destination)
+        display.text(message[:16], 0, i * 10)
+    display.show()
 
 def run():
+  led = machine.Pin(LED_PIN, machine.Pin.OUT)
+  led.off()
+  display = connect_display(DISPLAY_SCL, DISPLAY_SDA)
   try:
-    led = machine.Pin(LED_PIN, machine.Pin.OUT)
-    led.off()
-    display = connect_display(DISPLAY_SCL, DISPLAY_SDA)
     connect_wifi(display)
-    time.sleep(10)
+    time.sleep(1)
+    departures = get_data(display)["departures"]
+    
+    for i in range(1024):
+      print_departures(display, departures, 0, i, 6)
+      time.sleep(1)
+
     display.poweroff()
     led.on()
   except Exception as e:
+    print_message(display, e)
     show_error()
 
 run()
