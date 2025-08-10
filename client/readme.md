@@ -23,9 +23,9 @@ Then restart device, and app should run when device boots.
 
 ## problem with HTTPS
 
-In ESP8266 Documentation I found that:
+In micropython documentation I found that:
 
->ESP8266 uses axTLS library, which is one of the smallest TLS libraries with compatible licensing. However, it also has some known issues/limitations:
+> ESP8266 uses axTLS library, which is one of the smallest TLS libraries with compatible licensing. However, it also has some known issues/limitations:
 >
 > 1. No support for Diffie-Hellman (DH) key exchange and Elliptic-curve cryptography (ECC). This means it can’t work with sites which require the use of these features (it works ok with the typical sites that use RSA certificates).
 

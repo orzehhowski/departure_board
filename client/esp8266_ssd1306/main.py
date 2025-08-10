@@ -58,16 +58,14 @@ def connect_wifi(display: ssd1306.SSD1306_I2C) -> network.WLAN:
 
 def get_data(display: ssd1306.SSD1306_I2C) -> dict:
   if display:
-    print_message(display, "fetching data...")
     response = urequests.get(API_URL)
-    print_message(display, "fetched! status: {}".format(response.status_code))
     time.sleep(2)
     if response.status_code == 200:
       data = ujson.loads(response.text)
       response.close()
       return data
     else:
-      print("HTTP error:", response.status_code)
+      print_message("HTTP error: {}".format(response.status_code))
       response.close()
 
 def strip_polish(text):
@@ -82,7 +80,7 @@ def strip_polish(text):
 def print_departures(display: ssd1306.SSD1306_I2C, departures: list, offset_y: int, primary_offset_x: int, space_available) -> None:
   if display:
     display.fill(0)
-    for i in range(5):
+    for i in range(6):
       if (i < len(departures)):
         departure = departures[i]
         
@@ -106,6 +104,11 @@ def print_departures(display: ssd1306.SSD1306_I2C, departures: list, offset_y: i
         display.text(message[:16], 0, i * 10)
     display.show()
 
+# ints H, M, S
+def get_departure_time(departure: list) -> tuple[int, int, int]:
+
+  return [int(x) for x in departure[2].split(":")]
+
 def run():
   led = machine.Pin(LED_PIN, machine.Pin.OUT)
   led.off()
@@ -114,13 +117,42 @@ def run():
     connect_wifi(display)
     time.sleep(1)
     departures = get_data(display)["departures"]
-    
-    for i in range(1024):
-      print_departures(display, departures, 0, i, 6)
-      time.sleep(1)
 
-    display.poweroff()
-    led.on()
+    import ntptime # type: ignore
+    while True:
+      for i in range(60 * 60 * 24):
+          
+        # sync time every hour
+        if (i % 3600 == 0):
+          ntptime.settime()
+
+        # delete obsolete departures
+        if (i % 60 == 0):
+          # operate on shallow copy because we're removing elements from the original list
+          for departure in departures[:]:
+            now = list(time.localtime())[3:6]
+            # timezone!
+            now[0] += 2
+            now[0] %= 24
+            departure_time = get_departure_time(departure)
+            
+            didBreak = False
+            for j in range(3):
+              if now[j] > departure_time[j]:
+                departures.remove(departure)
+                didBreak = True
+                break
+            # we reached departures that are not to be deleted, skip rest of the list
+            if not didBreak:
+              break
+
+        # fetch new data
+        if (len(departures) < 9):
+          departures = get_data(display)["departures"]
+
+        print_departures(display, departures, 0, i, 6)
+        time.sleep(1)
+
   except Exception as e:
     print_message(display, e)
     show_error()
