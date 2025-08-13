@@ -12,7 +12,7 @@ LED_PIN = 2
 
 WIFI_SSID = my_secrets.WIFI_SSID
 WIFI_PASSWORD = my_secrets.WIFI_PASSWORD
-API_URL = "http://bimba.orzehhowski.pl"
+API_URL = "http://bimba.orzehhowski.pl/?n=14"
 
 def show_error():
   led = machine.Pin(LED_PIN, machine.Pin.OUT)
@@ -59,7 +59,6 @@ def connect_wifi(display: ssd1306.SSD1306_I2C) -> network.WLAN:
 def get_data(display: ssd1306.SSD1306_I2C) -> dict:
   if display:
     response = urequests.get(API_URL)
-    time.sleep(2)
     if response.status_code == 200:
       data = ujson.loads(response.text)
       response.close()
@@ -107,7 +106,7 @@ def print_departures(display: ssd1306.SSD1306_I2C, departures: list, offset_y: i
 # ints H, M, S
 def get_departure_time(departure: list) -> tuple[int, int, int]:
 
-  return [int(x) for x in departure[2].split(":")]
+  return tuple([int(x) for x in departure[2].split(":")])
 
 def run():
   led = machine.Pin(LED_PIN, machine.Pin.OUT)
@@ -115,43 +114,36 @@ def run():
   display = connect_display(DISPLAY_SCL, DISPLAY_SDA)
   try:
     connect_wifi(display)
-    time.sleep(1)
     departures = get_data(display)["departures"]
 
+    sleep_time = 0.5
+    sleep_multiplier = 1 // sleep_time
     import ntptime # type: ignore
     while True:
-      for i in range(60 * 60 * 24):
+      for i in range(60 * 60 * 24 * sleep_multiplier):
           
         # sync time every hour
-        if (i % 3600 == 0):
+        if (i % (3600 * sleep_multiplier) == 0):
           ntptime.settime()
 
         # delete obsolete departures
-        if (i % 60 == 0):
-          # operate on shallow copy because we're removing elements from the original list
-          for departure in departures[:]:
-            now = list(time.localtime())[3:6]
-            # timezone!
-            now[0] += 2
-            now[0] %= 24
-            departure_time = get_departure_time(departure)
-            
-            didBreak = False
-            for j in range(3):
-              if now[j] > departure_time[j]:
-                departures.remove(departure)
-                didBreak = True
-                break
-            # we reached departures that are not to be deleted, skip rest of the list
-            if not didBreak:
-              break
+        if (i % (60 * sleep_multiplier) == 0):
+          now = list(time.localtime())[3:6]
+          # timezone!
+          now[0] += 2
+          now[0] %= 24
+          new_departures = [
+            dep for dep in departures
+            if get_departure_time(dep) >= tuple(now)
+          ]
+          departures = new_departures
 
         # fetch new data
         if (len(departures) < 9):
           departures = get_data(display)["departures"]
 
         print_departures(display, departures, 0, i, 6)
-        time.sleep(1)
+        time.sleep(sleep_time)
 
   except Exception as e:
     print_message(display, e)
