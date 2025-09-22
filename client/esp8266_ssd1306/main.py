@@ -14,15 +14,17 @@ WIFI_SSID = my_secrets.WIFI_SSID
 WIFI_PASSWORD = my_secrets.WIFI_PASSWORD
 API_URL = "http://bimba.orzehhowski.pl/?n=14"
 
-def show_error():
+# phisical error indication - 3 rapid LED flashes 
+def show_error() -> None:
   led = machine.Pin(LED_PIN, machine.Pin.OUT)
-  for i in range(3):
+  for _ in range(3):
     led.on()
     time.sleep(0.25)
     led.off()
     time.sleep(0.25)
   led.on()
 
+# connect to SSD1306 display and return it's object
 def connect_display(display_scl: int, display_sda: int) -> ssd1306.SSD1306_I2C:
   i2c = machine.I2C(scl=display_scl, sda=display_sda)
   if 60 not in i2c.scan():
@@ -33,6 +35,7 @@ def connect_display(display_scl: int, display_sda: int) -> ssd1306.SSD1306_I2C:
   
   return display
 
+# print text message on the display
 def print_message(display: ssd1306.SSD1306_I2C, message: str) -> None:
   display.fill(0)
   i = 0
@@ -41,6 +44,7 @@ def print_message(display: ssd1306.SSD1306_I2C, message: str) -> None:
     i += 1
   display.show()
 
+# connect to the wifi network with status messages on display 
 def connect_wifi(display: ssd1306.SSD1306_I2C) -> network.WLAN:
   wlan = network.WLAN(network.STA_IF)
   wlan.active(True)
@@ -56,6 +60,7 @@ def connect_wifi(display: ssd1306.SSD1306_I2C) -> network.WLAN:
 
   return wlan
 
+# send HTTP request to API URL
 def get_data(display: ssd1306.SSD1306_I2C) -> dict:
   if display:
     response = urequests.get(API_URL)
@@ -67,7 +72,8 @@ def get_data(display: ssd1306.SSD1306_I2C) -> dict:
       print_message("HTTP error: {}".format(response.status_code))
       response.close()
 
-def strip_polish(text):
+# trim message from polish signs
+def strip_polish(text) -> str:
     mapping = {
         'ą': 'a', 'ć': 'c', 'ę': 'e', 'ł': 'l',
         'ń': 'n', 'ó': 'o', 'ś': 's', 'ż': 'z', 'ź': 'z',
@@ -76,6 +82,7 @@ def strip_polish(text):
     }
     return ''.join(mapping.get(c, c) for c in text)
 
+# pretty-printing departures
 def print_departures(display: ssd1306.SSD1306_I2C, departures: list, offset_y: int, primary_offset_x: int, space_available) -> None:
   if display:
     display.fill(0)

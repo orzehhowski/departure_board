@@ -40,7 +40,7 @@ def save_data_in_db(db_dir, db_name, data_dir) -> None:
 def fetch_data(flag_download_new_data=True, flag_save_data_in_db=True) -> None:
   output_filename = "gtfs.zip"
 
-  # 1. get data from ztm api
+  # get data from ztm api
   if flag_download_new_data:
     print(f"fetching data from {GTFS_URL}...")
     response = requests.get(GTFS_URL, headers={

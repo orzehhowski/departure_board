@@ -9,6 +9,8 @@ def read_data(filename: str) -> list[dict]:
     reader = csv.DictReader(file, delimiter=",", quotechar="\"")
     return list(reader)
 
+# same as above but in chunks 
+# for situations when file is too big to fit into host's working memory at once
 def read_data_in_chunks(filename: str, chunk_size: int):
   with open(filename, "r", encoding="utf-8-sig") as file:
     reader = csv.DictReader(file, delimiter=",", quotechar="\"")

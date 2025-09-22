@@ -6,6 +6,7 @@ import os
 from .ztm_data_handler import *
 from .globals import *
 
+# gets departures from db - this function will be executed in different thread 
 def get_departures(stop_id: str, current_datetime: datetime.datetime) -> list:
   weekday = current_datetime.strftime("%w")
   day = current_datetime.strftime("%Y%m%d")
@@ -46,17 +47,14 @@ async def handle(request: web.Request):
 
   current_datetime = datetime.datetime.now()
 
+  # here we put database read into different thread
   today_departures = await asyncio.to_thread(get_departures, stop_id, current_datetime)
 
   now = current_datetime.strftime("%H:%M:%S")
   after_midnight_departures = [list(x) for x in today_departures if x[2] >= "24:00:00"]
   today_departures = [x for x in today_departures if x[2] > now and x[2] < "24:00:00"]
 
-  # for data in today_departures[:limit]:
-  #   data = list(data)
-  #   data[1] = f"{data[1]:28}"
-  #   print(*data, sep="\t")
-
+  # if todays departures doesn't fulfill the limit, we reach the next day
   if len(today_departures) < limit:
     # swap after midnight times to next day
     for departure in after_midnight_departures:
@@ -64,6 +62,8 @@ async def handle(request: web.Request):
 
     tommorow_datetime = current_datetime + datetime.timedelta(days=1)
     tommorow_departures = await asyncio.to_thread(get_departures, stop_id, tommorow_datetime)
+    # we have to merge and sort tommorow departures with yesterdays after-midnight departures
+    # see /notes/readme
     tommorow_departures_merged = [*after_midnight_departures, *list(tommorow_departures)]
     tommorow_departures_merged.sort(key= lambda x: x[2])
 
@@ -74,13 +74,13 @@ async def handle(request: web.Request):
 
   return web.json_response({"departures": today_departures[:limit]}, status=200)
 
-# task that will run once every day - on 23:50
+# task that will fetch new data from ZTM API once every day - on 23:50
 async def fetch_data_task():
   print(f"[{datetime.datetime.now()}] Running data fetch")
   await asyncio.to_thread(fetch_data)
   print("Data fetch completed")
 
-# we're defining cron running once a day data fetch on app startup
+# we're defining cron for data fetch on app startup
 async def on_startup(app: web.Application):
   print(f"Setting daily data fetch schedule for \"{DATA_FETCH_CRON}\"")
   cron = aiocron.crontab(DATA_FETCH_CRON, func=fetch_data_task, start=True)
