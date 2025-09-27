@@ -15,6 +15,8 @@ WIFI_SSID = my_secrets.WIFI_SSID
 WIFI_PASSWORD = my_secrets.WIFI_PASSWORD
 API_URL = "http://bimba.orzehhowski.pl/?n=14"
 
+tick_flag = False
+
 # phisical error indication - 3 rapid LED flashes 
 def show_error() -> None:
   led = machine.Pin(LED_PIN, machine.Pin.OUT)
@@ -118,7 +120,14 @@ def get_departure_time(departure: list) -> tuple[int, int, int]:
 def hms_to_sec(h: int, m: int, s: int) -> int:
   return h * 3600 + m * 60 + s
 
+# Timer handler - sets the tick_flag
+def tick(timer: machine.Timer) -> None:
+    global tick_flag
+    tick_flag = True
+
 def run():
+  global tick_flag
+
   led = machine.Pin(LED_PIN, machine.Pin.OUT)
   led.off()
   display = connect_display(DISPLAY_SCL, DISPLAY_SDA)
@@ -130,12 +139,19 @@ def run():
     sleep_multiplier = 1 // sleep_time
     import ntptime # type: ignore
 
+    # Start the timer
+    timer = machine.Timer(-1)
+    timer.init(period=int(sleep_time * 1000), mode=machine.Timer.PERIODIC, callback=tick)
+
+    tick_count = -1
     # main loop
     while True:
-      for i in range(60 * 60 * 24 * sleep_multiplier):
+      if tick_flag:
+        tick_flag = False
+        tick_count += 1
           
         # sync time every hour
-        if (i % (3600 * sleep_multiplier) == 0):
+        if (tick_count % (3600 * sleep_multiplier) == 0):
           ntptime.settime()
 
         # get current time
@@ -145,7 +161,7 @@ def run():
         now[0] %= 24
 
         # delete obsolete departures
-        if (i % (60 * sleep_multiplier) == 0):
+        if (tick_count % (60 * sleep_multiplier) == 0):
           new_departures = [
             dep for dep in departures
             if get_departure_time(dep) >= tuple(now)
@@ -162,7 +178,9 @@ def run():
           diff = hms_to_sec(*get_departure_time(dep)) - hms_to_sec(*tuple(now))
           # if diff < 0, we've got day switch, so we add 24h and alles gut
           # and one spare minute is useful for some offset situations
-          if diff < -60:
+          if diff > -60 and diff < 0:
+            diff = 0
+          if diff < 0:
             diff += 86400
 
           # switch to minutes
@@ -180,12 +198,11 @@ def run():
           else:
             dep.append(res)
 
-        print_departures(display, departures, 0, i, 8)
-        time.sleep(sleep_time)
+        print_departures(display, departures, 0, tick_count, 8)
         gc.collect()
 
   except Exception as e:
     show_error()
-    print_message(display, e)
+    print_message(display, str(e))
 
 run()
