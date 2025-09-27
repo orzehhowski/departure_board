@@ -10,10 +10,11 @@ import gc
 DISPLAY_SCL = 4
 DISPLAY_SDA = 5
 LED_PIN = 2
+ADC_PIN = 0
 
 WIFI_SSID = my_secrets.WIFI_SSID
 WIFI_PASSWORD = my_secrets.WIFI_PASSWORD
-API_URL = "http://bimba.orzehhowski.pl/?n=14"
+API_URL = "http://bimba.orzehhowski.pl/?n=18"
 
 tick_flag = False
 
@@ -89,8 +90,8 @@ def print_departures(display: ssd1306.SSD1306_I2C, departures: list, offset_y: i
   if display:
     display.fill(0)
     for i in range(6):
-      if (i < len(departures)):
-        departure = departures[i]
+      if (i + offset_y < len(departures)):
+        departure = departures[i + offset_y]
         
         destination = strip_polish(departure[1])
 
@@ -125,17 +126,34 @@ def tick(timer: machine.Timer) -> None:
     global tick_flag
     tick_flag = True
 
+def get_adc_zone(adc: machine.ADC) -> int:
+  val = adc.read()
+  if val < 200:
+    zone = 0
+  elif val < 400:
+    zone = 1
+  elif val < 600:
+    zone = 2
+  elif val < 800:
+    zone = 3
+  else:
+    zone = 4
+  return zone
+
 def run():
   global tick_flag
 
   led = machine.Pin(LED_PIN, machine.Pin.OUT)
+  potentiometer = machine.ADC(ADC_PIN)
   led.off()
   display = connect_display(DISPLAY_SCL, DISPLAY_SDA)
   try:
     connect_wifi(display)
     departures = get_data(display)["departures"]
 
-    sleep_time = 0.5
+    # letters float left every sleep_time * 5
+    # adc change checks every sleep_time
+    sleep_time = 0.1
     sleep_multiplier = 1 // sleep_time
     import ntptime # type: ignore
 
@@ -149,7 +167,7 @@ def run():
       if tick_flag:
         tick_flag = False
         tick_count += 1
-          
+
         # sync time every hour
         if (tick_count % (3600 * sleep_multiplier) == 0):
           ntptime.settime()
@@ -169,7 +187,7 @@ def run():
           departures = new_departures
 
         # fetch new data
-        if (len(departures) < 9):
+        if (len(departures) < 11):
           departures = get_data(display)["departures"]
 
         # calculate time remaining to departure
@@ -198,7 +216,10 @@ def run():
           else:
             dep.append(res)
 
-        print_departures(display, departures, 0, tick_count, 8)
+        # check ADC for offset y
+        offset_y = get_adc_zone(potentiometer)
+
+        print_departures(display, departures, offset_y, tick_count // 5, 8)
         gc.collect()
 
   except Exception as e:

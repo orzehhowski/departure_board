@@ -1,6 +1,6 @@
 ## setup
 
-This is a setup for (as directory name indicates) ESP8266 microcontroller and SSD1306 screen.
+This is a setup for (as directory name indicates) ESP8266 microcontroller and SSD1306 screen. Additionally, you can connect potentiometer (or any other device that allows voltage manipulation) to ADC PIN, and use it as board "scroll" - when ADC reads higher voltage, display shows later departures.
 
 ## how to run it
 
