@@ -5,6 +5,7 @@ import urequests # type: ignore
 import ujson # type: ignore
 import time
 import my_secrets
+import gc
 
 DISPLAY_SCL = 4
 DISPLAY_SDA = 5
@@ -62,15 +63,14 @@ def connect_wifi(display: ssd1306.SSD1306_I2C) -> network.WLAN:
 
 # send HTTP request to API URL
 def get_data(display: ssd1306.SSD1306_I2C) -> dict:
-  if display:
-    response = urequests.get(API_URL)
-    if response.status_code == 200:
-      data = ujson.loads(response.text)
-      response.close()
-      return data
-    else:
-      print_message("HTTP error: {}".format(response.status_code))
-      response.close()
+  response = urequests.get(API_URL)
+  if response.status_code == 200:
+    data = ujson.loads(response.text)
+    response.close()
+    return data
+  else:
+    print_message(display, "HTTP error: {}".format(response.status_code))
+    response.close()
 
 # trim message from polish signs
 def strip_polish(text) -> str:
@@ -106,7 +106,7 @@ def print_departures(display: ssd1306.SSD1306_I2C, departures: list, offset_y: i
           left = space_available + offset_x - len(destination)
           destination = destination[offset_x:] + destination[:left]
 
-        message = "{}|{:3}|{}".format(departure[2][:5], departure[0], destination)
+        message = "{}|{:3}|{}".format(departure[3], departure[0], destination)
         display.text(message[:16], 0, i * 10)
     display.show()
 
@@ -114,6 +114,9 @@ def print_departures(display: ssd1306.SSD1306_I2C, departures: list, offset_y: i
 def get_departure_time(departure: list) -> tuple[int, int, int]:
 
   return tuple([int(x) for x in departure[2].split(":")])
+
+def hms_to_sec(h: int, m: int, s: int) -> int:
+  return h * 3600 + m * 60 + s
 
 def run():
   led = machine.Pin(LED_PIN, machine.Pin.OUT)
@@ -126,6 +129,8 @@ def run():
     sleep_time = 0.5
     sleep_multiplier = 1 // sleep_time
     import ntptime # type: ignore
+
+    # main loop
     while True:
       for i in range(60 * 60 * 24 * sleep_multiplier):
           
@@ -133,12 +138,14 @@ def run():
         if (i % (3600 * sleep_multiplier) == 0):
           ntptime.settime()
 
+        # get current time
+        now = list(time.localtime())[3:6]
+        # timezone!
+        now[0] += 2
+        now[0] %= 24
+
         # delete obsolete departures
         if (i % (60 * sleep_multiplier) == 0):
-          now = list(time.localtime())[3:6]
-          # timezone!
-          now[0] += 2
-          now[0] %= 24
           new_departures = [
             dep for dep in departures
             if get_departure_time(dep) >= tuple(now)
@@ -149,11 +156,36 @@ def run():
         if (len(departures) < 9):
           departures = get_data(display)["departures"]
 
-        print_departures(display, departures, 0, i, 6)
+        # calculate time remaining to departure
+        for dep in departures:
+          res = ""
+          diff = hms_to_sec(*get_departure_time(dep)) - hms_to_sec(*tuple(now))
+          # if diff < 0, we've got day switch, so we add 24h and alles gut
+          # and one spare minute is useful for some offset situations
+          if diff < -60:
+            diff += 86400
+
+          # switch to minutes
+          diff = diff // 60
+          
+          if diff < 60:
+            res = "{:2}m".format(diff)
+          else:
+            # and now switch to hours
+            res = "{:2}h".format(diff // 60)
+
+          # add result as third element
+          if len(dep) > 3:
+            dep[3] = res
+          else:
+            dep.append(res)
+
+        print_departures(display, departures, 0, i, 8)
         time.sleep(sleep_time)
+        gc.collect()
 
   except Exception as e:
-    print_message(display, e)
     show_error()
+    print_message(display, e)
 
 run()
