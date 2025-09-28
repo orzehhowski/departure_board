@@ -14,7 +14,7 @@ ADC_PIN = 0
 
 WIFI_SSID = my_secrets.WIFI_SSID
 WIFI_PASSWORD = my_secrets.WIFI_PASSWORD
-API_URL = "http://bimba.orzehhowski.pl/?n=18"
+API_URL = "http://bimba.orzehhowski.pl/?n=22"
 
 tick_flag = False
 
@@ -126,19 +126,12 @@ def tick(timer: machine.Timer) -> None:
     global tick_flag
     tick_flag = True
 
+# 10 zones - from 0 to 9
 def get_adc_zone(adc: machine.ADC) -> int:
   val = adc.read()
-  if val < 200:
-    zone = 0
-  elif val < 400:
-    zone = 1
-  elif val < 600:
-    zone = 2
-  elif val < 800:
-    zone = 3
-  else:
-    zone = 4
-  return zone
+  if val < 1000:
+    return val // 100
+  return 10
 
 def run():
   global tick_flag
@@ -187,7 +180,7 @@ def run():
           departures = new_departures
 
         # fetch new data
-        if (len(departures) < 11):
+        if (len(departures) < 16):
           departures = get_data(display)["departures"]
 
         # calculate time remaining to departure
