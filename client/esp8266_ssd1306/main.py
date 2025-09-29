@@ -86,7 +86,7 @@ def strip_polish(text) -> str:
     return ''.join(mapping.get(c, c) for c in text)
 
 # pretty-printing departures
-def print_departures(display: ssd1306.SSD1306_I2C, departures: list, offset_y: int, primary_offset_x: int, space_available) -> None:
+def print_departures(display: ssd1306.SSD1306_I2C, departures: list, offset_y: int, primary_offset_x: int, space_available: int) -> None:
   if display:
     display.fill(0)
     for i in range(6):
@@ -95,19 +95,27 @@ def print_departures(display: ssd1306.SSD1306_I2C, departures: list, offset_y: i
         
         destination = strip_polish(departure[1])
 
-        # here we choose chunk fitting the offset_x
-        destination += "   "
-        
-        offset_x = primary_offset_x % len(destination)
+        # if destination fits the space, we don't need to play with offset
+        # example: |POLABSKA |
+        if len(destination) <= space_available:
+          offset_x = 0
 
-        # variant 1: no need for adding next iteration
-        if offset_x + space_available < len(destination):
-          destination = destination[offset_x:offset_x + space_available]
+        else:
+          # here we choose chunk fitting the offset_x
+          destination += "   "
+          
+          offset_x = primary_offset_x % len(destination)
 
-        # variant 2: we have to add next iteration
-        elif offset_x + space_available >= len(destination):
-          left = space_available + offset_x - len(destination)
-          destination = destination[offset_x:] + destination[:left]
+          # variant 1: no need for adding next iteration
+          # example for MILOSTOWO: |MILOSTOW|
+          if offset_x + space_available < len(destination):
+            destination = destination[offset_x:offset_x + space_available]
+
+          # variant 2: we have to add next iteration
+          # example for MILOSTOWO: |OWO   MI|
+          elif offset_x + space_available >= len(destination):
+            left = space_available + offset_x - len(destination)
+            destination = destination[offset_x:] + destination[:left]
 
         message = "{}|{:3}|{}".format(departure[3], departure[0], destination)
         display.text(message[:16], 0, i * 10)
@@ -138,7 +146,7 @@ def run():
 
   led = machine.Pin(LED_PIN, machine.Pin.OUT)
   potentiometer = machine.ADC(ADC_PIN)
-  led.off()
+  led.on()
   display = connect_display(DISPLAY_SCL, DISPLAY_SDA)
   try:
     connect_wifi(display)
