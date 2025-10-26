@@ -176,7 +176,7 @@ def run():
         # get current time
         now = list(time.localtime())[3:6]
         # timezone!
-        now[0] += 2
+        now[0] += 1
         now[0] %= 24
 
         # delete obsolete departures
