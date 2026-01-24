@@ -4,6 +4,8 @@ I wan't to create home live departure board for trams on my nearest station, on 
 
 This file describes API server, for client details visit `readme` files in `/client` directory.
 
+[Check how it looks like!](https://youtube.com/shorts/Hm6Nk3ttQ0U?feature=share) (It's not very exciting, but I like the results :)
+
 ## how to run
 
 ```
